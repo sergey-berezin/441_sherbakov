@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RestoreSources>$(RestoreSources);C:/soft/forGit/CSharpLabs/1stLab/441_sherbakov/library/bin/Debug;https://api.nuget.org/v3/index.json
+    </RestoreSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Anton-FaceEmotions" Version="0.1.7" />
+  </ItemGroup>
+
+</Project>
