@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>Anton-FaceEmotions</PackageId>
-    <Version>0.1.7.0</Version>
+    <Version>1.0.0</Version>
     <Authors>Anton Shcherbakov</Authors>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="emotion-ferplus-7.onnx">
+    <EmbeddedResource Include="emotion-ferplus-8.onnx">
       <LogicalName>emotion.onnx</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
