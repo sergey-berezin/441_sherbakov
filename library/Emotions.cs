@@ -7,44 +7,39 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Threading.Tasks.Dataflow;
 
 namespace EmotionFerPlus {
-    public interface IErrorReporter
-    {   
-        void ReportError(string message);
-    }
     public class Emotions {
-        public List<CancellationTokenSource> cts = new List<CancellationTokenSource>(); 
-        public List<string> tasksNames = new List<string>(); //naming tasks (for tests to see what's answer gonna be about)
-        //public void setTokens (List<CancellationTokenSource> cts) => this.cts = cts;
-        public void setTokens (int num) {
-            for (int i = 0; i < num; i++) {
-                cts.Add(new CancellationTokenSource());
-            }
-        }
-        public void cancelTask (int i) {
-            cts[i].Cancel();
-        }
-        public void setTaskNames (List<string> tn) => tasksNames = tn;
-        public Emotions () {}
-
-        public bool CancelTaskRequested (int i) {
-            if (i <= -1)
+        public InferenceSession session;
+        bool CancelTaskRequested(CancellationTokenSource? cts) {
+            if (cts == null)
                 return false;
-            if (cts[i].IsCancellationRequested)
+            if (cts.IsCancellationRequested)
                 return true;
             return false;
         }
-        public async Task<IEnumerable <(string, double)>> GetMostLikelyEmotionsAsync (IErrorReporter reporter, byte[] img, int i = -1, bool withTaskNames = false) {
+        public Emotions () {
+            using var modelStream = typeof(Emotions).Assembly.GetManifestResourceStream("emotion.onnx");
+            using var memoryStream = new MemoryStream();
+            if (modelStream != null)
+                modelStream.CopyTo(memoryStream);
+            this.session = new InferenceSession(memoryStream.ToArray()); 
+        }
+        public async Task<IEnumerable <(string, double)>> GetMostLikelyEmotionsAsync (byte[] img, CancellationTokenSource? cts = null, string? taskName = null) {
 
-            IErrorReporter myReporter = reporter;
             var L = new List <(string, double)>();
             try {
-                
+                var myStream = new MemoryStream(img);
+                Image<Rgb24> image;
+                if (cts == null) {
+                    image = await Image.LoadAsync<Rgb24>(myStream);
+                }
+                else
+                    image = await Image.LoadAsync<Rgb24>(myStream, cts.Token);
 
-                Func<IEnumerable <(string, double)>> func =  //func for upcoming Task.Run
+                Func<IEnumerable <(string, double)>> func = //func for upcoming Task.Run
                     () => {
-                    using Image<Rgb24> image = Image.Load<Rgb24>(img);
                     image.Mutate(ctx => {
                         ctx.Resize(new ResizeOptions 
                                     {
@@ -53,30 +48,37 @@ namespace EmotionFerPlus {
                                     });
                     });
 
-                    if (CancelTaskRequested(i)) //additional check 1 after resizing the image (for leaving cause of CancellationToken)
+                    if (CancelTaskRequested(cts)) //additional check 1 after resizing the image (for leaving cause of CancellationToken)
                         return L;
-                    
-                    using var modelStream = typeof(Emotions).Assembly.GetManifestResourceStream("emotion.onnx");
-                    using var memoryStream = new MemoryStream();
-                    modelStream.CopyTo(memoryStream);
-                    using var session = new InferenceSession(memoryStream.ToArray()); 
 
-                    if (CancelTaskRequested(i)) //check 2 after creating session 
+                    if (CancelTaskRequested(cts)) //check 2 after creating session 
                         return L;
 
                     var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("Input3", GrayscaleImageToTensor(image)) };
+                    image.Dispose();
 
-                    if (CancelTaskRequested(i)) //check 3 after transforming image to tensor 
+                    if (CancelTaskRequested(cts)) //check 3 after transforming image to tensor 
                         return L;
 
-                    using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = session.Run(inputs);
+                    float[] emotions = new float[0];
+                    var ab = new ActionBlock<bool> (
+                        x => {
+                            var results = this.session.Run(inputs);
+                            emotions = (Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray()));
+                        }
+                        ,
+                        new ExecutionDataflowBlockOptions {
+                            MaxDegreeOfParallelism = 1
+                        }
+                    );
+                    ab.Post(true);
+                    ab.Complete();
+                    ab.Completion.Wait();
 
-                    if (CancelTaskRequested(i)) //check 4 after running ML 
+                    if (CancelTaskRequested(cts)) //check 4 after running ML 
                         return L;
 
-                    var emotions = Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray());
-
-                    if (CancelTaskRequested(i)) //check 5 just almost before end (in case of suddenly came CansellationToken) 
+                    if (CancelTaskRequested(cts)) //check 5 just almost before end (in case of suddenly came CansellationToken) 
                         return L;
 
                     string[] keys = { "neutral", "happiness", "surprise", "sadness", "anger", "disgust", "fear", "contempt" };
@@ -86,24 +88,25 @@ namespace EmotionFerPlus {
 
                     return L;
                 };
-                if (i == -1) {
-                    return await Task<IEnumerable <(string, double)>>.Run(func);
+
+                if (taskName != null)
+                    L.Add(("Gonna be mostly: " + taskName, 0));
+
+                if (cts == null) {
+                        return await Task<IEnumerable <(string, double)>>.Run(func);
                 }
+
                 else {
-                    var ct = cts[i].Token;
-                    if (withTaskNames)
-                        L.Add(("Gonna be mostly: " + tasksNames[i], 0));
-                    return await Task<IEnumerable <(string, double)>>.Run(func, ct);
+                    return await Task<IEnumerable <(string, double)>>.Run(func, cts.Token);
                 }
             }
             catch (Exception ex) {
-                myReporter.ReportError(ex.Message);
-                return L;
+                throw new Exception(ex.Message, ex);
+                // return L;
             }
         }
-        public IEnumerable <(string, double)> GetMostLikelyEmotions (IErrorReporter reporter, byte[] img, int i = -1, bool withTaskNames = false) {
+        public IEnumerable <(string, double)> GetMostLikelyEmotions (byte[] img, CancellationTokenSource? cts = null, string? taskName = null) {
 
-            IErrorReporter myReporter = reporter;
             var L = new List <(string, double)>();
             try {
 
@@ -117,17 +120,25 @@ namespace EmotionFerPlus {
                                         Mode = ResizeMode.Crop
                                     });
                     });
-                    
-                    using var modelStream = typeof(Emotions).Assembly.GetManifestResourceStream("emotion.onnx");
-                    using var memoryStream = new MemoryStream();
-                    modelStream.CopyTo(memoryStream);
-                    using var session = new InferenceSession(memoryStream.ToArray()); 
 
                     var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("Input3", GrayscaleImageToTensor(image)) };
 
-                    using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = session.Run(inputs);
+                    using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = this.session.Run(inputs);
 
-                    var emotions = Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray());
+                    float[] emotions = new float[0];
+                    var ab = new ActionBlock<bool> (
+                        x => {
+                            var results = this.session.Run(inputs);
+                            emotions = (Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray()));
+                        }
+                        ,
+                        new ExecutionDataflowBlockOptions {
+                            MaxDegreeOfParallelism = 1
+                        }
+                    );
+                    ab.Post(true);
+                    ab.Complete();
+                    ab.Completion.Wait();
 
                     string[] keys = { "neutral", "happiness", "surprise", "sadness", "anger", "disgust", "fear", "contempt" };
                     foreach (var item in keys.Zip(emotions)) {
@@ -136,13 +147,13 @@ namespace EmotionFerPlus {
 
                     return L;
                 };
-                if (withTaskNames)
-                    L.Add(("Gonna be mostly: " + tasksNames[i], 0));
+                if (taskName != null)
+                    L.Add(("Gonna be mostly: " + taskName, 0));
                 return func();
             }
             catch (Exception ex) {
-                myReporter.ReportError(ex.Message);
-                return L;
+                throw new Exception(ex.Message, ex);
+                // return L;
             }
         }
         DenseTensor<float> GrayscaleImageToTensor(Image<Rgb24> img)
