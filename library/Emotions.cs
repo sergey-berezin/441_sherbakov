@@ -11,6 +11,7 @@ using System.Threading.Tasks.Dataflow;
 
 namespace EmotionFerPlus {
     public class Emotions {
+        public SemaphoreSlim captureSession = new SemaphoreSlim(1, 1);
         public InferenceSession session;
         bool CancelTaskRequested(CancellationTokenSource? cts) {
             if (cts == null)
@@ -60,20 +61,12 @@ namespace EmotionFerPlus {
                     if (CancelTaskRequested(cts)) //check 3 after transforming image to tensor 
                         return L;
 
-                    float[] emotions = new float[0];
-                    var ab = new ActionBlock<bool> (
-                        x => {
-                            var results = this.session.Run(inputs);
-                            emotions = (Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray()));
-                        }
-                        ,
-                        new ExecutionDataflowBlockOptions {
-                            MaxDegreeOfParallelism = 1
-                        }
-                    );
-                    ab.Post(true);
-                    ab.Complete();
-                    ab.Completion.Wait();
+
+                    captureSession.Wait();
+                    var results = this.session.Run(inputs);
+                    captureSession.Release();
+
+                    var emotions = (Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray()));
 
                     if (CancelTaskRequested(cts)) //check 4 after running ML 
                         return L;
@@ -123,22 +116,12 @@ namespace EmotionFerPlus {
 
                     var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("Input3", GrayscaleImageToTensor(image)) };
 
-                    using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = this.session.Run(inputs);
 
-                    float[] emotions = new float[0];
-                    var ab = new ActionBlock<bool> (
-                        x => {
-                            var results = this.session.Run(inputs);
-                            emotions = (Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray()));
-                        }
-                        ,
-                        new ExecutionDataflowBlockOptions {
-                            MaxDegreeOfParallelism = 1
-                        }
-                    );
-                    ab.Post(true);
-                    ab.Complete();
-                    ab.Completion.Wait();
+                    captureSession.Wait();
+                    using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results = this.session.Run(inputs);
+                    captureSession.Release();
+
+                    var emotions = (Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray()));
 
                     string[] keys = { "neutral", "happiness", "surprise", "sadness", "anger", "disgust", "fear", "contempt" };
                     foreach (var item in keys.Zip(emotions)) {
