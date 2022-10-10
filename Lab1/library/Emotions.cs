@@ -62,7 +62,7 @@ namespace EmotionFerPlus {
                         return L;
 
 
-                    await captureSession.WaitAsync();
+                    captureSession.Wait();
                     var results = this.session.Run(inputs);
                     captureSession.Release();
 
