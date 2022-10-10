@@ -1,7 +1,4 @@
-﻿// Download ONNX model from https://github.com/onnx/models/blob/main/vision/body_analysis/emotion_ferplus/model/emotion-ferplus-7.onnx
-// to project directory before build
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using SixLabors.ImageSharp;
@@ -13,13 +10,6 @@ namespace EmotionFerPlus {
     public class Emotions {
         public SemaphoreSlim captureSession = new SemaphoreSlim(1, 1);
         public InferenceSession session;
-        bool CancelTaskRequested(CancellationTokenSource? cts) {
-            if (cts == null)
-                return false;
-            if (cts.IsCancellationRequested)
-                return true;
-            return false;
-        }
         public Emotions () {
             using var modelStream = typeof(Emotions).Assembly.GetManifestResourceStream("emotion.onnx");
             using var memoryStream = new MemoryStream();
@@ -27,20 +17,18 @@ namespace EmotionFerPlus {
                 modelStream.CopyTo(memoryStream);
             this.session = new InferenceSession(memoryStream.ToArray()); 
         }
-        public async Task<IEnumerable <(string, double)>> GetMostLikelyEmotionsAsync (byte[] img, CancellationTokenSource? cts = null, string? taskName = null) {
+        public async Task<IEnumerable <(string, double)>> GetMostLikelyEmotionsAsync (byte[] img, CancellationToken ct, string? taskName = null) {
 
             var L = new List <(string, double)>();
             try {
                 var myStream = new MemoryStream(img);
-                Image<Rgb24> image;
-                if (cts == null) {
-                    image = await Image.LoadAsync<Rgb24>(myStream);
-                }
-                else
-                    image = await Image.LoadAsync<Rgb24>(myStream, cts.Token);
+                Image<Rgb24> image = await Image.LoadAsync<Rgb24>(myStream, ct);
 
-                Func<IEnumerable <(string, double)>> func = //func for upcoming Task.Run
-                    () => {
+                if (taskName != null)
+                    L.Add(("Gonna be mostly: " + taskName, 0));
+
+                return await Task<IEnumerable <(string, double)>>.Run(
+                async () => {
                     image.Mutate(ctx => {
                         ctx.Resize(new ResizeOptions 
                                     {
@@ -49,56 +37,45 @@ namespace EmotionFerPlus {
                                     });
                     });
 
-                    if (CancelTaskRequested(cts)) //additional check 1 after resizing the image (for leaving cause of CancellationToken)
+                    if (ct.IsCancellationRequested) //additional check 1 after resizing the image (for leaving cause of CancellationToken)
                         return L;
 
-                    if (CancelTaskRequested(cts)) //check 2 after creating session 
+                    if (ct.IsCancellationRequested) //check 2 after creating session 
                         return L;
 
                     var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("Input3", GrayscaleImageToTensor(image)) };
                     image.Dispose();
 
-                    if (CancelTaskRequested(cts)) //check 3 after transforming image to tensor 
+                    if (ct.IsCancellationRequested) //check 3 after transforming image to tensor 
                         return L;
 
 
-                    captureSession.Wait();
+                    await captureSession.WaitAsync();
                     var results = this.session.Run(inputs);
                     captureSession.Release();
 
                     var emotions = (Softmax(results.First(v => v.Name == "Plus692_Output_0").AsEnumerable<float>().ToArray()));
 
-                    if (CancelTaskRequested(cts)) //check 4 after running ML 
+                    if (ct.IsCancellationRequested) //check 4 after running ML 
                         return L;
 
-                    if (CancelTaskRequested(cts)) //check 5 just almost before end (in case of suddenly came CansellationToken) 
+                    if (ct.IsCancellationRequested) //check 5 just almost before end (in case of suddenly came CansellationToken) 
                         return L;
 
                     string[] keys = { "neutral", "happiness", "surprise", "sadness", "anger", "disgust", "fear", "contempt" };
                     foreach (var item in keys.Zip(emotions)) {
                         L.Add(item);
                     }
-
                     return L;
-                };
-
-                if (taskName != null)
-                    L.Add(("Gonna be mostly: " + taskName, 0));
-
-                if (cts == null) {
-                        return await Task<IEnumerable <(string, double)>>.Run(func);
                 }
-
-                else {
-                    return await Task<IEnumerable <(string, double)>>.Run(func, cts.Token);
-                }
+                    , ct);
             }
             catch (Exception ex) {
                 throw new Exception(ex.Message, ex);
                 // return L;
             }
         }
-        public IEnumerable <(string, double)> GetMostLikelyEmotions (byte[] img, CancellationTokenSource? cts = null, string? taskName = null) {
+        public IEnumerable <(string, double)> GetMostLikelyEmotions (byte[] img, string? taskName = null) {
 
             var L = new List <(string, double)>();
             try {
