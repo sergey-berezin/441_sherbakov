@@ -116,7 +116,7 @@ namespace EmotionsWPF
             var rt = await Task.Run(async ()  =>
             {
                 var img = await File.ReadAllBytesAsync(path, cts.Token);
-                var res = await emoML.GetMostLikelyEmotionsAsync(img, cts);
+                var res = await emoML.GetMostLikelyEmotionsAsync(img, cts.Token);
                 photo_obj.Set_emoList(res);
                 return res;
             }, cts.Token);
