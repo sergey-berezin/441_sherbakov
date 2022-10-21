@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>Anton-FaceEmotions</PackageId>
-    <Version>2.1.0</Version>
+    <Version>2.2.0</Version>
     <Authors>Anton Shcherbakov</Authors>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -22,15 +22,15 @@ namespace test
       else {
         var taskArr = new Task[args.Length];
         for (int i = 0; i < args.Length; i++) {
-          taskArr[i] = getResultsAsync(args[i]);
+          taskArr[i] = getResultsAsync(args[i], CancellationToken.None);
         }
         await Task.WhenAll(taskArr);
       }
     }
-    static async Task getResultsAsync (string? fname = null, CancellationTokenSource? cts = null, string? taskName = null) {
+    static async Task getResultsAsync (string fname, CancellationToken ct, string? taskName = null) {
       try {
-        var img = await File.ReadAllBytesAsync(fname == null ? "face.png" : fname);
-        var L = await emoML.GetMostLikelyEmotionsAsync(img, cts, taskName);
+        var img = await File.ReadAllBytesAsync(fname);
+        var L = await emoML.GetMostLikelyEmotionsAsync(img, ct, taskName);
 
         lock(locker) { //giving access to Console.Write only for 1 Thread
           Console.WriteLine();
@@ -43,10 +43,10 @@ namespace test
         Console.WriteLine($"Error occured in Console Application: {ex.Message}");
       }
     }
-    static void getResults (string? fname = null, CancellationTokenSource? cts = null, string? taskName = null) {
+    static void getResults (string fname, CancellationToken ct, string? taskName = null) {
       try {
-        var img = File.ReadAllBytes(fname == null ? "face.png" : fname);
-        var L = emoML.GetMostLikelyEmotions(img, cts, taskName);
+        var img = File.ReadAllBytes(fname);
+        var L = emoML.GetMostLikelyEmotions(img, taskName);
 
         Console.WriteLine();
         foreach(var item in L) {
@@ -72,7 +72,7 @@ namespace test
         watch.Start();
 
         for (int i = 0; i < args.Length; i++) {
-          getResults(args[i], cts_array[i], taskNames[i]);
+          getResults(args[i], cts_array[i].Token, taskNames[i]);
         }
 
         Console.WriteLine($"OverAll time in testSync: {watch.ElapsedMilliseconds}ms\n");
@@ -101,7 +101,7 @@ namespace test
         watch.Start();
 
         for (int i = 0; i < args.Length; i++) {
-          taskArr[i] = getResultsAsync(args[i], cts_array[i], taskNames[i]);
+          taskArr[i] = getResultsAsync(args[i], cts_array[i].Token, taskNames[i]);
         }
 
         await Task.WhenAll(taskArr);
@@ -129,7 +129,7 @@ namespace test
         watch.Start();
 
         for (int i = 0; i < args.Length; i++) {
-          taskArr[i] = getResultsAsync(args[i], cts_array[i], taskNames[i]); //i - number of Task (need for upcoming Cancelling with CancellationToken)
+          taskArr[i] = getResultsAsync(args[i], cts_array[i].Token, taskNames[i]); //i - number of Task (need for upcoming Cancelling with CancellationToken)
         }
         await Task.Delay(delayTime);
         for (int i = 0; i < Images_Num; i++)
@@ -158,7 +158,7 @@ namespace test
         watch.Start();
         
         for (int i = 0; i < args.Length; i++) {
-          taskArr[i] = getResultsAsync(args[i], cts_array[i], taskNames[i]); //i - number of Task (need for upcoming Cancelling with CancellationToken)
+          taskArr[i] = getResultsAsync(args[i], cts_array[i].Token, taskNames[i]); //i - number of Task (need for upcoming Cancelling with CancellationToken)
         }
         await Task.WhenAll(taskArr);
         Console.WriteLine($"OverAll time in testAsyncWithImmediatelyCancellation (were Cancel before Tasks started): " +
