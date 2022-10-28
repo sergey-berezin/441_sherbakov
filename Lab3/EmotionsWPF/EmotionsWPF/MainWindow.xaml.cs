@@ -136,7 +136,7 @@ namespace EmotionsWPF
             public DbSet<photoDetails> details { get; set; }
 
             protected override void OnConfiguring(DbContextOptionsBuilder o) => 
-                o.UseSqlite("Data Source=library.db");
+                o.UseSqlite("Data Source=emotions.db");
         }
         private SemaphoreSlim smphore = new SemaphoreSlim(1, 1);
         public MainWindow()
