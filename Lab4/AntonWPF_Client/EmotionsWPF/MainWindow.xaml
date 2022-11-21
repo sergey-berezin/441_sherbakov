@@ -78,7 +78,7 @@
                              IsChecked="{Binding showData[1], Mode=TwoWay}"
                                  GroupName="weShow" Margin="15,5,0,0" HorizontalAlignment="Left" />
             </StackPanel>
-            <Button Content="Delete Image (from DB) (d)" Margin="10, 10, 10, 70" Width="170" Height="50"
+            <Button Content="Delete Images (from DB) (d)" Margin="10, 10, 10, 70" Width="170" Height="50"
                     HorizontalAlignment="Center" VerticalAlignment="Bottom" Command="{Binding DeleteImage}">
             </Button>
             <Button Content="Load Data From Database" Margin="10" Width="170" Height="50"

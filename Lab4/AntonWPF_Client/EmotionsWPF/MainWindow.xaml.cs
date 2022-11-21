@@ -28,6 +28,8 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Net.Http;
 using Newtonsoft.Json;
 using System.Text.Json;
+using Polly.Retry;
+using Polly;
 
 namespace EmotionsWPF
 {
@@ -38,6 +40,8 @@ namespace EmotionsWPF
         public ICommand CancelCalculations { get; private set; }
         public ICommand ClearImages { get; private set; }
         public ICommand DeleteImage { get; private set; }
+        private const int MaxRetries = 3;  // numbers retries to reconnect to the server
+        private readonly AsyncRetryPolicy _retryPolicy; // retryPolicy
 
         private int _barFill = 0;
         public int barFill
@@ -84,28 +88,32 @@ namespace EmotionsWPF
         }
         private string[] hardcoded_options = new string[] { "happiness", "neutral", "surprise", "sadness",
             "anger", "disgust", "fear", "contempt"};
-       
+
         private ObservableCollection<photoLine> photo_list = new ObservableCollection<photoLine>();
         public MainWindow()
         {
             InitializeComponent();
             this.DataContext = this;
+
             PhotoList.ItemsSource = photo_list;
             CancelCalculations = new RelayCommand(_ =>
-                {
-                    DoCancel(this);
-                }, CanCancel
+            {
+                DoCancel(this);
+            }, CanCancel
             );
             ClearImages = new RelayCommand(_ =>
-                {
-                    DoClear(this);
-                }, CanClear
+            {
+                DoClear(this);
+            }, CanClear
             );
             DeleteImage = new RelayCommand(_ =>
-                {
-                    DoDelete(this);
-                }, CanDelete
+            {
+                DoDelete(this);
+            }, CanDelete
             );
+
+            _retryPolicy = Policy.Handle<HttpRequestException>().WaitAndRetryAsync(MaxRetries, times =>
+                TimeSpan.FromMilliseconds(Math.Exp(times) * 250));
         }
         private async Task<photoLine?> ProceedImages(string path)
         {
@@ -115,32 +123,33 @@ namespace EmotionsWPF
                 var relPath = tmp[tmp.Length - 1];
                 var img = await File.ReadAllBytesAsync(path, cts.Token);
                 var postObj = (img, relPath);
-                HttpClient client = new HttpClient();
                 // no reasons to specify to work Base64 format - I checked, seems like it's already using as default way
                 // in Json.Serialize
                 var s = JsonConvert.SerializeObject(postObj);
                 var buffer = System.Text.Encoding.UTF8.GetBytes(s);
                 var byteContent = new ByteArrayContent(buffer);
                 byteContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-                var responsePost = await client.PostAsync(url, byteContent, cts.Token);
 
-                var responsePostResult = JsonConvert.DeserializeObject<(int, bool)>(responsePost.Content.ReadAsStringAsync().Result);
-                if (responsePostResult.Item2 == true && ShowData == 1) // photo is found in DB and in WPF App set the option to not show
-                    return null;
-                if (responsePostResult.Item1 == -1) // Most likely it means that Task Cancel Exception occured
+                return await _retryPolicy.ExecuteAsync(async () =>
                 {
-                    return null;
-                }
-                int id = responsePostResult.Item1;
-                var responseGetPhoto = await client.GetAsync($"{url}/{id}", cts.Token);
-                var photo = JsonConvert.DeserializeObject<photoLine?>(responseGetPhoto.Content.ReadAsStringAsync().Result);
-                return photo;
+                    var client = new HttpClient();
+                    var responsePost = await client.PostAsync(url, byteContent, cts.Token);
+                    var responsePostResult = JsonConvert.DeserializeObject<(int, bool)>(responsePost.Content.ReadAsStringAsync().Result);
+                    if (responsePostResult.Item2 == true && ShowData == 1) // photo is found in DB and in WPF App set the option to not show
+                        return null;
+                    if (responsePostResult.Item1 == -1) // Most likely it means that Task Cancel Exception occured
+                    {
+                        return null;
+                    }
+                    int id = responsePostResult.Item1;
+                    var responseGetPhoto = await client.GetAsync($"{url}/{id}", cts.Token);
+                    var photo = JsonConvert.DeserializeObject<photoLine?>(responseGetPhoto.Content.ReadAsStringAsync().Result);
+                    return photo;
+                });
             }
             catch (Exception ex)
             {
-                //if (ex.Message == "The operation was canceled." || ex.Message == "A task was canceled.")
-                throw new OperationCanceledException(ex.Message);
-                //return null;
+                throw new OperationCanceledException(ex.Message); // to a higher level in catch in FilePicker
             }
         }
         private async void FilePicker_Click(object sender, RoutedEventArgs? e = null)
@@ -165,7 +174,8 @@ namespace EmotionsWPF
 
                     var Tasks = new Task[ofd.FileNames.Length];
 
-                    for (int i = 0; i < Tasks.Length; i++) {
+                    for (int i = 0; i < Tasks.Length; i++)
+                    {
                         var path = ofd.FileNames[i];
 
                         Tasks[i] = Task.Run(async () =>
@@ -179,7 +189,7 @@ namespace EmotionsWPF
                             if (res != null)
                                 photo_list.Add(res);
                         }, TaskScheduler.FromCurrentSynchronizationContext()); //from the main thread to be able to add items to list
-                        
+
                     }
                     await Task.WhenAll(Tasks);
                     Calculations_status = 2;
@@ -187,7 +197,7 @@ namespace EmotionsWPF
                     RadioButton_Checked(this, new RoutedEventArgs());
                 }
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException)
             {
                 Calculations_status = 2;
                 barFill = 0;
@@ -237,16 +247,21 @@ namespace EmotionsWPF
 
         private bool CanDelete(object sender)
         {
-            if (PhotoList.SelectedItem != null)
+            //if (PhotoList.SelectedItem != null) // was correct for deleting 1 image, but I deleting all
+            if (PhotoList.Items.Count > 0)
                 return true;
             return false;
         }
         private async void DoDelete(object sender)
         {
-            HttpClient client = new HttpClient();
-            var result = await client.DeleteAsync(url);
-            var answer = JsonConvert.DeserializeObject<int>(result.Content.ReadAsStringAsync().Result);
-            photo_list.Clear();
+            await _retryPolicy.ExecuteAsync(async () =>
+            {
+                HttpClient client = new HttpClient();
+                var result = await client.DeleteAsync(url);
+                var answer = JsonConvert.DeserializeObject<int>(result.Content.ReadAsStringAsync().Result);
+                barFill = 0;
+                photo_list.Clear();
+            });
         }
         private void RadioButton_Checked(object sender, RoutedEventArgs e)
         {
@@ -272,15 +287,18 @@ namespace EmotionsWPF
                 Calculations_status = 1;
                 barFill = 0;
                 ProgressBar.Maximum = 1;
-                HttpClient client = new HttpClient();
-                string result = await client.GetStringAsync(url, cts.Token);
-                var allPhotos = JsonConvert.DeserializeObject<List<photoLine>>(result);
-                photo_list = new ObservableCollection<photoLine>(allPhotos);
-                PhotoList.ItemsSource = photo_list;
-                Calculations_status = 2;
-                barFill = 1;
-                RadioButton_Checked(this, new RoutedEventArgs());
-                PhotoList.Focus();
+                await _retryPolicy.ExecuteAsync(async () =>
+                {
+                    HttpClient client = new HttpClient();
+                    string result = await client.GetStringAsync(url, cts.Token);
+                    var allPhotos = JsonConvert.DeserializeObject<List<photoLine>>(result);
+                    photo_list = new ObservableCollection<photoLine>(allPhotos);
+                    PhotoList.ItemsSource = photo_list;
+                    Calculations_status = 2;
+                    barFill = 1;
+                    RadioButton_Checked(this, new RoutedEventArgs());
+                    PhotoList.Focus();
+                });
             }
             catch (OperationCanceledException ex)
             {

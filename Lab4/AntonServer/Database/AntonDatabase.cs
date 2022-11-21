@@ -37,22 +37,28 @@ namespace AntonServer.Database
         private Emotions emoML = new Emotions();
         public async Task<int> DeleteAllImages()
         {
-            await smphore.WaitAsync();
-            using (var db = new DatabaseContext())
-            {
-                var photos = db.photos
-                    .Include(x => x.Details)
-                    .Include(x => x.emotions);
-                if (photos == null)
+            try {
+                await smphore.WaitAsync();
+                using (var db = new DatabaseContext())
                 {
-                    smphore.Release();
+                    var photos = db.photos
+                        .Include(x => x.Details)
+                        .Include(x => x.emotions);
+                    if (photos == null)
+                    {
+                        return 0;
+                    }
+                    await db.Database.ExecuteSqlRawAsync("DELETE FROM [details]");
+                    await db.Database.ExecuteSqlRawAsync("DELETE FROM [emotions]");
+                    await db.Database.ExecuteSqlRawAsync("DELETE FROM [photos]");
                     return 0;
                 }
-                await db.Database.ExecuteSqlRawAsync("DELETE FROM [details]");
-                await db.Database.ExecuteSqlRawAsync("DELETE FROM [emotions]");
-                await db.Database.ExecuteSqlRawAsync("DELETE FROM [photos]");
+            }
+            catch (Exception ex) {
+                return -1;
+            }
+            finally {
                 smphore.Release();
-                return 0;
             }
         }
         public async Task<IEnumerable<photoLine>> GetAllPhotos(CancellationToken ct)
@@ -63,29 +69,19 @@ namespace AntonServer.Database
                 await smphore.WaitAsync();
                 using (var db = new DatabaseContext())
                 {
-                    var res = await Task.Run<List<photoLine>>(() =>
-                    {
-                        List<photoLine> photos = db.photos.Include(item => item.Details).Include(item => item.emotions).ToList();
-                        if (ct.IsCancellationRequested) {
-                            return emptyList;
-                        }
-                        return photos;
-                    }, ct);
-                    smphore.Release();
-                    return res;
+                    List<photoLine> photos = db.photos.Include(item => item.Details).Include(item => item.emotions).ToList();
+                    if (ct.IsCancellationRequested) {
+                        return emptyList;
+                    }
+                    return photos;
                 }
-            }
-            catch (OperationCanceledException ex)
-            {
-                if (smphore.CurrentCount == 0)
-                   smphore.Release();
-                return emptyList;
             }
             catch (Exception ex)
             {
-                if (smphore.CurrentCount == 0)
-                   smphore.Release();
                 return emptyList;
+            }
+            finally {
+                smphore.Release();
             }
         }
         public async Task<photoLine?> TryGetPhotoById(int id)
@@ -94,27 +90,17 @@ namespace AntonServer.Database
                 await smphore.WaitAsync();
                 using (var db = new DatabaseContext())
                 {
-                    var res = await Task.Run<photoLine>(() =>
-                    {
-                        photoLine photo = db.photos.Where(x => x.photoId == id)
-                                            .Include(x => x.Details).Include(x => x.emotions).FirstOrDefault();
-                        return photo;
-                    });
-                    smphore.Release();
-                    return res;
+                    photoLine photo = db.photos.Where(x => x.photoId == id)
+                                        .Include(x => x.Details).Include(x => x.emotions).FirstOrDefault();
+                    return photo; // may be null, if null it means that photo with given id not found
                 }
-            }
-            catch (OperationCanceledException ex)
-            {
-                if (smphore.CurrentCount == 0)
-                   smphore.Release();
-                return null;
             }
             catch (Exception ex)
             {
-                if (smphore.CurrentCount == 0)
-                   smphore.Release();
                 return null;
+            }
+            finally {
+                smphore.Release();
             }
         }
         public async Task<(int, bool)> PostImage(byte[] img, CancellationToken ct, string name = "default_name")
@@ -122,67 +108,61 @@ namespace AntonServer.Database
             var defaultAnswer = (-1, false);
             try 
             {
+                await smphore.WaitAsync();
                 var photo_obj = new photoLine { fileName = name };
                 photo_obj.CreateHashCode(img); // creating hashcode for our BLOB
                 photo_obj.Details = new photoDetails { imageBLOB = img };
-                await smphore.WaitAsync();
+                if (ct.IsCancellationRequested)
+                    return defaultAnswer;
                 using (var db = new DatabaseContext()) // check if image exists in DB
                 {
-                    var res = await Task<int>.Run(() => //if bool will be true - it means we must leave
+                    //if bool will be true - it means we must leave
+                    var res = -1;
+                    if (db.photos.Any(x => x.imgHashCode == photo_obj.imgHashCode)) // if HashCode is the same
                     {
-                        if (db.photos.Any(x => x.imgHashCode == photo_obj.imgHashCode)) // if HashCode is the same
+                        var query = db.photos.Where(x => x.imgHashCode == photo_obj.imgHashCode)
+                            .Include(item => item.Details);
+                        // if BLOBs are the same - and ShowData is true - returning photoLine from DB and then adding to photo_list
+                        if (ct.IsCancellationRequested)
+                            return defaultAnswer;
+                        if (query.Any(x => Enumerable.SequenceEqual(x.Details.imageBLOB, photo_obj.Details.imageBLOB)))
                         {
-                            var query = db.photos.Where(x => x.imgHashCode == photo_obj.imgHashCode)
-                                .Include(item => item.Details);
-                            // if BLOBs are the same - and ShowData is true - returning photoLine from DB and then adding to photo_list
-                            if (query.Any(x => Enumerable.SequenceEqual(x.Details.imageBLOB, photo_obj.Details.imageBLOB)))
-                            {
-                                var item = query
-                                    .Where(x => Enumerable.SequenceEqual(x.Details.imageBLOB, photo_obj.Details.imageBLOB))
-                                    .FirstOrDefault().photoId;
-                                return item;
-                            }
+                            var item = query
+                                .Where(x => Enumerable.SequenceEqual(x.Details.imageBLOB, photo_obj.Details.imageBLOB))
+                                .FirstOrDefault().photoId;
+                            if (item != null)
+                                res = item;
                         }
-                        return -1;
-                    }, ct);
+                    }
+                    if (ct.IsCancellationRequested)
+                        return defaultAnswer;
                     if (res != -1)
                     {
-                        smphore.Release();
                         return (res, true);
                     }
-                }
-                var id = -1;
-                var rt = await Task<int>.Run(async () =>
-                {
-                    var res = await emoML.GetMostLikelyEmotionsAsync(img, ct);
-                    using (DatabaseContext db = new DatabaseContext())
+                    var nuget_res = await emoML.GetMostLikelyEmotionsAsync(img, ct);
+                    if (ct.IsCancellationRequested)
+                        return defaultAnswer;
+                    var emoList = new List<emotion>();
+                    foreach (var item in nuget_res)
                     {
-                        var emoList = new List<emotion>();
-                        foreach (var item in res)
-                        {
-                            emoList.Add(new emotion() { emoOdds = item.Item2, emoName = item.Item1 });
-                        }
-                        photo_obj.emotions = emoList;
-                        db.photos.Add(photo_obj);
-                        db.SaveChanges();
-                        id = db.photos.Max(x => x.photoId);
+                        emoList.Add(new emotion() { emoOdds = item.Item2, emoName = item.Item1 });
                     }
-                    return id;
-                }, ct);
-                smphore.Release();
-                return (id, false);
-            }
-            catch (OperationCanceledException ex)
-            {
-                if (smphore.CurrentCount == 0)
-                   smphore.Release();
-                return defaultAnswer;
+                    if (ct.IsCancellationRequested)
+                        return defaultAnswer;
+                    photo_obj.emotions = emoList;
+                    db.photos.Add(photo_obj);
+                    db.SaveChanges();
+                    res = db.photos.Max(x => x.photoId);
+                    return (res, false);
+                }
             }
             catch (Exception ex)
             {
-                if (smphore.CurrentCount == 0)
-                   smphore.Release();
                 return defaultAnswer;
+            }
+            finally {
+                smphore.Release();
             }
         }
     }
