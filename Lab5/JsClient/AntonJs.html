@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntonUI</title>
+
+    <link href="cssRoot/css/AntonStyles.css" rel="stylesheet" />
+    <script src="js/jquery-3.6.1.min.js"></script>
+    <script src="js/swagger-client.min.js"></script>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="commonTitle">
+            <div class="commotTitle__title">
+                <h1> Anton's javascript client </h1>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="photos">
+                <div class="photos__title">
+                    <h2> photos list </h2>
+                </div>
+                <div class="photos__body">
+                    <!-- <div class="photos__bodyWrapper">
+                        <div class="photo__item" id="f1">
+                            <span> Hello here! UI is ready for you command </span>
+                            <img/>
+                        </div>
+                    </div> -->
+                </div>
+            </div>
+            <div class="emotions">
+                <div class="emotions__title">
+                    <h2> emotions list </h2>
+                </div>
+                <div class="emotions__body">
+                    <!-- <div class="emotions__item happiness_item"> smth-1 </div>
+                    <div class="emotions__item neutral_item"> smth-2 </div>
+                    <div class="emotions__item surprise_item"> smth-3 </div>
+                    <div class="emotions__item sadness_item"> smth-4 </div>
+                    <div class="emotions__item anger_item"> smth-5 </div>
+                    <div class="emotions__item disgust_item"> smth-6 </div>
+                    <div class="emotions__item fear_item"> smth-7 </div>
+                    <div class="emotions__item contempt_item"> smth-8 </div> -->
+                </div>
+            </div>
+            <div class="buttons">
+                <div class="progressLine">
+                    <progress id="progressButton" value="0" max="100"></progress>
+                </div>
+                <div class="buttonsDBInteraction">
+                    <h3>Server's DB interaction buttons</h3>
+                    <div class="buttonsDBInteraction__body">
+                        <a id="buttonLoad" class="buttonsAntonStyle">
+                            <span>
+                                <span class="spanInnerTitle">Load from ServerDB</span><span class="spanInnerKey">(press L)</span>
+                            </span>
+                        </a>
+                        <input type="file" multiple="multiple" id="uploadFile" alt="" style="display: none"> </input>
+                        <a id="buttonUpload" class="buttonsAntonStyle"> 
+                            <span>
+                                <span class="spanInnerTitle">Upload files</span> <span class="spanInnerKey">(press P)</span>
+                            </span>
+                        </a>
+                        <a id="buttonDelete" class="buttonsAntonStyle">
+                            <span>
+                                <span class="spanInnerTitle">Delete All from ServerDB</span> <span class="spanInnerKey">(D)</span>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+                <div class="buttonsUIInteraction">
+                    <h3>UI interaction buttons</h3>
+                    <div class="buttonsUIInteraction__body">
+                        <a id="buttonClear" class="buttonsAntonStyle pink">
+                            <span>
+                                <span class="spanInnerTitle">Clear all</span> <span class="spanInnerKey">(press C)</span>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+                <div class="buttonsSortOptions">
+                    <h3>Order photos by emotion:</h3>
+                    <div class="buttonsSortOptions__body">
+                        <select id="selectEmotion" class="listBoxAntonStyle">
+                            <option value="happiness">happiness</option>
+                            <option value="neutral">neutral</option>
+                            <option value="surprise">surprise</option>
+                            <option value="sadness">sadness</option>
+                            <option value="anger">anger</option>
+                            <option value="disgust">disgust</option>
+                            <option value="fear">fear</option>
+                            <option value="contempt">contempt</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/AntonJs.js"></script>
+</body>
+</html>
