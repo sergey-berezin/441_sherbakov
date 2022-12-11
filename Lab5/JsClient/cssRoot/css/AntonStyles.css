@@ -80,6 +80,8 @@ body {
   --emotionsHeight: 350px;
   --buttonWidth: 350px;
   --buttonHeight: 40px;
+  --progressWidth: 380px;
+  --progressHeight: 40px;
 }
 
 .wrapper {
@@ -508,17 +510,52 @@ h3 {
 }
 
 .progressLine {
-  margin: 15px 0px 0px 0;
-  height: 38px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  border: 3px solid rgb(1, 105, 251);
+  width: var(--progressWidth);
+  border-radius: 15px;
+  border-collapse: initial;
+  overflow: hidden;
+  border-radius: 20px;
+  margin: 5px 0 8px 0;
+  height: 85px;
+}
+.progressLine .progressLine__Title {
+  text-align: center;
+  padding: 2px 0 5px 0;
+  width: 100%;
+  color: rgb(1, 15, 143);
+  background-color: rgb(87, 157, 255);
+  margin: 0 0 18px 0;
+}
+
+.progressLine__Wrapper {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: start;
+      -ms-flex-align: start;
+          align-items: flex-start;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  width: 100%;
+  height: 50px;
 }
 
 progress {
   -webkit-transform: scale(2.5);
           transform: scale(2.5);
-  display: block;
   height: 16px;
-  background-color: aqua;
-  color: aqua;
 }
 
 .listBoxAntonStyle {
