@@ -1,0 +1,376 @@
+@import "nullstyle.scss"; 
+
+:root{
+    --mywidth: 240px;
+    --photosHeight: 635px;
+    --emotionsHeight: 350px;
+    --buttonWidth: 350px;
+    --buttonHeight: 40px;
+    --progressWidth: 380px;
+    --progressHeight: 40px;
+}
+
+.wrapper {
+    padding: 5px 10px;
+    width: 100%;
+    height: 100%;;
+}
+
+.commonTitle {
+
+}
+
+
+.commotTitle__title {
+    padding: 3px 0 5px 0;
+    margin: 0 0 7px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: rgb(25, 11, 117);
+    background-color: rgb(254, 232, 230);
+    border: 3px solid rgb(255, 126, 126);
+    border-radius: 8px;
+}
+
+.content {
+    display: flex;
+}
+
+h1 {
+    font-size: 35px;
+    font-weight: 700;
+}
+
+h2 {
+    font-size: 25px;
+    font-weight: 700;
+}
+
+h3 {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.photos {
+    margin: 0px 6px 0px 0px;
+    width: 35%;
+    height: 80%;
+    font-size: 18px;
+    display: flex;
+    flex-direction: column;
+    background-color: yellow;
+    border-radius: 10px;
+    box-shadow: 5px 4px 7px 2px rgb(102, 102, 0);
+    align-items: center;
+}
+
+.photos__title {
+    padding: 5px 0px;
+}
+.photos__body {
+    font-size: 18px;
+    font-weight: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: auto;
+    width: 100%;
+    height: var(--photosHeight);
+    background-color: rgb(249, 255, 169);
+}
+
+.photos__bodyWrapper{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-direction: column;
+    padding: 4px 0 0 0;
+    width: 100%;
+    &:hover {
+        background-color: rgb(194, 236, 255);
+    }
+    &:focus {
+        background-color: rgb(124, 213, 254);
+    }
+}
+
+
+.photo__item{
+    margin: 8px;
+    width: 90%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid rgb(99, 156, 254);
+    border-radius: 20px;
+    span {
+        font-weight: 700;
+        color: rgb(227, 0, 0);
+        padding: 0 0 5px 0;
+    }
+    img {
+        height: 170px;
+        width: auto;
+    }
+}
+
+.emotions {
+    margin: 0px 4px 0px 35px;
+    width: 30%;
+    height: 80%;
+    font-size: 18px;
+    display: flex;
+    border-radius: 10px;
+    flex-direction: column;
+    background-color: rgb(253, 184, 94);
+    box-shadow: 5px 4px 7px 2px rgb(102, 46, 0);
+    align-items: center;
+}
+
+.emotions__title {
+    padding: 5px 0px;
+}
+
+.emotions__body {
+    font-size: 18px;
+    font-weight: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: auto;
+    width: 100%;
+    height: var(--emotionsHeight);
+    background-color: rgb(255, 218, 169);
+    & div:first-child {
+        font-style: normal;
+        font-size: 22px;
+        color:red;
+    }
+}
+
+.emotions__item{
+    padding: 10px;
+    width: 90%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-style: italic;
+    font-weight: bold;
+    color: rgb(0, 0, 171);
+
+}
+
+.buttons {
+    width: 34%;
+    justify-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.buttonsDBInteraction{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid rgb(251, 126, 1);
+    border-radius: 15px;
+    border-collapse:initial;
+    color: rgb(105, 70, 4);
+    overflow: hidden;
+    margin: 0px 0px 8px 0;
+    h3 {
+        text-align: center;
+        width: 100%;
+        background-color: orange;
+        padding: 5px 0px;
+    }
+}
+
+.buttonsDBInteraction__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 12px 0 12px;
+}
+
+.buttonsUIInteraction{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid rgb(251, 1, 234);
+    border-radius: 15px;
+    border-collapse:initial;
+    color: rgb(105, 4, 93);
+    overflow: hidden;
+    margin: 0px 0px 8px 0;
+    h3 {
+        text-align: center;
+        width: 100%;
+        background-color: rgb(255, 124, 229);
+        padding: 5px 0px;
+    }
+}
+
+.buttonsUIInteraction__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 12px 0 12px;
+}
+
+.buttonsSortOptions{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid rgb(1, 251, 26);
+    border-radius: 15px;
+    border-collapse:initial;
+    color: rgb(4, 105, 16);
+    overflow: hidden;
+    margin: 0px 0px 8px 0;
+    h3 {
+        text-align: center;
+        width: 100%;
+        background-color: rgb(124, 255, 137);
+        padding: 5px 0px;
+    }
+}
+
+.buttonsSortOptions__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 12px 0 12px;
+}
+
+.buttonsAntonStyle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0px 0px 12px 0px;
+    color: white;
+    border: none;
+    width: var(--buttonWidth);
+    height: var(--buttonHeight);
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 18px;
+    background-color: rgb(245, 91, 2);
+    box-shadow: 5px 4px 8px 2px black;
+    &>span {
+        margin: 0 0 0 60px;
+    }
+    .spanInnerKey {
+        font-size: 15px;
+        color: rgb(3, 11, 160);
+        font-style: italic;
+        margin: 0 0 0 10px;
+    }
+}
+.buttonsAntonStyle:hover, .clicked {
+    background-color: rgb(238, 16, 0);
+    border-radius: 20px;
+    .spanInnerTitle {
+        text-decoration: underline;
+    }
+}
+
+.buttonsAntonStyle:active, .clicking{
+top: 2px;
+box-shadow: 5px 3px 8px 2px black;
+}
+
+.pink {
+    background-color: rgb(242, 0, 197);
+}
+.pink:hover, .clicked {
+    background-color: rgb(185, 0, 154);
+}
+
+.linkDisabled {
+    pointer-events:none;
+    background-color: rgb(107, 108, 109);
+    color: rgb(37, 41, 43);
+}
+.progressLine {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 3px solid rgb(1, 105, 251);
+    width: var(--progressWidth);
+    border-radius: 15px;
+    border-collapse:initial;
+    overflow: hidden;
+    border-radius: 20px;
+    margin: 5px 0 8px 0;
+    height: 85px;
+    .progressLine__Title {
+        text-align: center;
+        padding: 2px 0 5px 0;
+        width: 100%;
+        color: rgb(1, 15, 143);
+        background-color: rgb(87, 157, 255);
+        margin: 0 0 18px 0;
+    }
+}
+
+// .buttonsDBInteraction h3 {
+//     text-align: center;
+//     width: 100%;
+//     background-color: orange;
+//     padding: 5px 0px;
+// }
+
+.progressLine__Wrapper {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    height: 50px;
+}
+progress {
+    transform: scale(2.5);
+    // display: block;
+    height: 16px;
+
+}
+
+.listBoxAntonStyle{
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0px 0px 12px 0px;
+    color: white;
+    border: none;
+    width: var(--buttonWidth);
+    height: var(--buttonHeight);
+    border-radius: 5px;
+    padding: 6px 12px;
+    font-size: 18px;
+    background-color: rgb(10, 187, 0);
+    box-shadow: 5px 4px 8px 2px black;
+}
+.listBoxAntonStyle:hover {
+    background-color: rgb(6, 123, 0);
+    border-radius: 10px;
+}
+
+.listBoxAntonStyle{
+    top: 2px;
+    box-shadow: 5px 3px 8px 2px black;
+}
+  

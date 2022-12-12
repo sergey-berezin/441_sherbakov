@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "swagger-client": "^3.18.5"
+  },
+  "name": "jsclient",
+  "version": "1.0.0",
+  "main": "js/AntonJs.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

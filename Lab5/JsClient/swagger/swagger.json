@@ -1,0 +1,232 @@
+{
+  "x-generator": "NSwag v13.17.0.0 (NJsonSchema v10.8.0.0 (Newtonsoft.Json v13.0.0.0))",
+  "swagger": "2.0",
+  "info": {
+    "title": "My Title",
+    "version": "1.0.0"
+  },
+  "host": "localhost:5041",
+  "schemes": [
+    "http"
+  ],
+  "produces": [
+    "text/plain",
+    "application/json",
+    "text/json"
+  ],
+  "paths": {
+    "/Photos": {
+      "get": {
+        "tags": [
+          "Photos"
+        ],
+        "operationId": "Photos_GetPhotos",
+        "responses": {
+          "200": {
+            "x-nullable": false,
+            "description": "",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PhotoLine"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Photos"
+        ],
+        "operationId": "Photos_DeletePhotos",
+        "responses": {
+          "200": {
+            "x-nullable": false,
+            "description": "",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Photos"
+        ],
+        "operationId": "Photos_PostImage",
+        "consumes": [
+          "application/json-patch+json",
+          "application/json",
+          "text/json",
+          "application/*+json"
+        ],
+        "parameters": [
+          {
+            "name": "obj",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PostInput"
+            },
+            "x-nullable": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "x-nullable": false,
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/PostOutput"
+            }
+          }
+        }
+      }
+    },
+    "/Photos/{id}": {
+      "get": {
+        "tags": [
+          "Photos"
+        ],
+        "operationId": "Photos_GetPhoto",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "format": "int32",
+            "x-nullable": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "x-nullable": false,
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/PhotoLine"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "PhotoLine": {
+      "type": "object",
+      "required": [
+        "photoId",
+        "fileName",
+        "imgHashCode",
+        "details",
+        "emotions",
+        "option_emotion"
+      ],
+      "properties": {
+        "photoId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "imgHashCode": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "details": {
+          "$ref": "#/definitions/PhotoDetails"
+        },
+        "emotions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Emotion"
+          }
+        },
+        "option_emotion": {
+          "type": "string"
+        }
+      }
+    },
+    "PhotoDetails": {
+      "type": "object",
+      "required": [
+        "detailsId",
+        "photoLineId",
+        "imageBLOB"
+      ],
+      "properties": {
+        "detailsId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "photoLineId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "imageBLOB": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "Emotion": {
+      "type": "object",
+      "required": [
+        "emotionID",
+        "photoLineId",
+        "emoOdds",
+        "emoName"
+      ],
+      "properties": {
+        "emotionID": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "photoLineId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "emoOdds": {
+          "type": "number",
+          "format": "double"
+        },
+        "emoName": {
+          "type": "string"
+        }
+      }
+    },
+    "PostOutput": {
+      "type": "object",
+      "required": [
+        "id",
+        "isFound"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "isFound": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PostInput": {
+      "type": "object",
+      "required": [
+        "img",
+        "fname"
+      ],
+      "properties": {
+        "img": {
+          "type": "string",
+          "format": "byte"
+        },
+        "fname": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
